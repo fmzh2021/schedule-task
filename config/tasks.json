@@ -45,7 +45,7 @@
       "enabled": true,
       "schedule": {
         "day": 5,
-        "hour": 15,
+        "hour": 16,
         "minute": "*"
       },
       "notification": {
@@ -57,7 +57,7 @@
           "msg": "### 定时调度测试\n\n每月5日15点每分钟\n\n\n"
         }
       }
-    },
+    }
   ]
 }
 
