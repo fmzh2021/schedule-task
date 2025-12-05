@@ -5,6 +5,7 @@
 ## 📋 目录
 
 - [快速开始](#快速开始)
+- [定时调度设置](#定时调度设置) ⭐ **重要：首次使用必读**
 - [告警平台配置](#告警平台配置)
 - [手动触发任务](#手动触发任务)
 - [任务列表](#任务列表)
@@ -24,6 +25,52 @@
 ### 方式二：使用传统工作流
 
 使用 `monthly-notification.yml` 工作流，直接在 YAML 文件中配置任务。
+
+## ⏰ 定时调度设置
+
+### GitHub Actions 会自动执行吗？
+
+**是的！** GitHub Actions 的定时调度会自动执行，但需要满足以下条件：
+
+#### ✅ 前提条件
+
+1. **仓库类型**
+   - ✅ **公开仓库（Public）**：完全免费，定时任务自动执行
+   - ⚠️ **私有仓库（Private）**：需要 GitHub Pro/Team/Enterprise 账户
+     - 免费账户的私有仓库不支持定时调度，但可以手动触发
+
+2. **工作流文件位置**
+   - 文件必须在 `.github/workflows/` 目录下
+   - 必须推送到**默认分支**（`main` 或 `master`）
+
+3. **启用 Actions**
+   - 仓库 Settings → Actions → General
+   - 确保 Actions permissions 已启用
+
+#### 🚀 设置步骤
+
+1. **推送代码到 GitHub**
+   ```bash
+   git add .
+   git commit -m "添加告警平台"
+   git push origin main
+   ```
+
+2. **验证工作流**
+   - 进入仓库的 **Actions** 标签页
+   - 应该能看到 "告警平台定时任务" 工作流
+
+3. **手动测试（推荐）**
+   - 点击 "Run workflow" 手动触发一次
+   - 确认任务正常执行
+
+4. **等待自动执行**
+   - 定时任务会在下一个调度时间自动触发
+   - 当前配置每分钟执行一次，最多等待 1 分钟就能看到执行记录
+
+#### 📝 详细说明
+
+更多关于定时调度的设置和常见问题，请查看：[GitHub Actions 定时调度设置指南](docs/GITHUB_ACTIONS_SETUP.md)
 
 ## ⚙️ 告警平台配置
 
@@ -50,13 +97,16 @@
         // "minutes": [0, 10, 30]
       },
       "notification": {
+        "method": "GET",                    // HTTP 方法：GET（默认）或 POST
         "url": "http://notice.xmwefun.cn/",
-        "params": {
+        "params": {                         // GET 请求的 query 参数，或 POST 请求的 body（当没有 body 时）
           "msg": "消息内容",
           "type": "xchat",
           "title": "标题",
           "chatid": "0000001534"
-        }
+        },
+        "body": {},                         // POST 请求的 body（可选，优先级高于 params）
+        "headers": {}                       // 自定义请求头（可选）
       }
     }
   ]
@@ -115,6 +165,57 @@
       "type": "xchat",
       "bot": "weiliao-personal",
       "title": "每月复盘"
+    }
+  }
+}
+```
+
+#### 示例3：POST 请求（使用 body）
+```json
+{
+  "id": "task-003",
+  "name": "POST请求示例",
+  "enabled": true,
+  "schedule": {
+    "day": 1,
+    "hour": 10,
+    "minute": 0
+  },
+  "notification": {
+    "method": "POST",
+    "url": "http://api.example.com/webhook",
+    "body": {
+      "event": "monthly_report",
+      "data": {
+        "month": "2024-01",
+        "status": "completed"
+      }
+    },
+    "headers": {
+      "Authorization": "Bearer your-token-here",
+      "Content-Type": "application/json"
+    }
+  }
+}
+```
+
+#### 示例4：POST 请求（使用 params 作为 body）
+```json
+{
+  "id": "task-004",
+  "name": "POST请求使用params",
+  "enabled": true,
+  "schedule": {
+    "day": 1,
+    "hour": 10,
+    "minute": 0
+  },
+  "notification": {
+    "method": "POST",
+    "url": "http://api.example.com/webhook",
+    "params": {
+      "message": "使用params作为POST body",
+      "type": "notification"
     }
   }
 }
@@ -230,10 +331,13 @@ schedule-task/
 
 ### 通知参数配置
 
-所有通知参数都在 `notification.params` 中配置，系统会自动构建完整的 URL。
+#### GET 请求（默认）
+
+GET 请求的参数通过 URL query string 传递：
 
 ```json
 "notification": {
+  "method": "GET",  // 可选，默认为 GET
   "url": "http://notice.xmwefun.cn/",
   "params": {
     "msg": "消息内容",
@@ -243,6 +347,59 @@ schedule-task/
   }
 }
 ```
+
+实际请求：`http://notice.xmwefun.cn/?msg=消息内容&type=xchat&title=标题&chatid=0000001534`
+
+#### POST 请求（使用 body）
+
+POST 请求的参数通过请求体（body）传递，支持 JSON 格式：
+
+```json
+"notification": {
+  "method": "POST",
+  "url": "http://api.example.com/webhook",
+  "body": {
+    "event": "notification",
+    "data": {
+      "message": "消息内容",
+      "type": "alert"
+    }
+  },
+  "headers": {
+    "Authorization": "Bearer your-token",
+    "Content-Type": "application/json"
+  }
+}
+```
+
+**说明：**
+- `body`：POST 请求的请求体，可以是对象或字符串
+- `headers`：自定义请求头（可选）
+- 如果指定了 `body`，会使用 `body` 作为请求体
+- 如果没有 `body` 但有 `params`，会将 `params` 作为 JSON body
+
+#### POST 请求（使用 params 作为 body）
+
+如果没有指定 `body`，`params` 会被转换为 JSON 作为 POST 请求体：
+
+```json
+"notification": {
+  "method": "POST",
+  "url": "http://api.example.com/webhook",
+  "params": {
+    "message": "消息内容",
+    "type": "notification"
+  }
+}
+```
+
+实际请求体：`{"message": "消息内容", "type": "notification"}`
+
+#### 支持的 HTTP 方法
+
+- `GET`：默认方法，参数通过 URL query string 传递
+- `POST`：参数通过请求体传递
+- `PUT`、`DELETE`、`PATCH` 等：也支持，参数通过请求体传递
 
 ## ⚠️ 注意事项
 
@@ -276,6 +433,7 @@ schedule-task/
 
 ## 📚 相关资源
 
+- [GitHub Actions 定时调度设置指南](docs/GITHUB_ACTIONS_SETUP.md) - 详细的设置说明和常见问题
 - [GitHub Actions 文档](https://docs.github.com/en/actions)
 - [Cron 表达式说明](https://crontab.guru/)
 - [JSON 格式验证](https://jsonlint.com/)

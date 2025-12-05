@@ -106,25 +106,95 @@ try:
         if should_execute:
             executed = True
             url = notification.get("url", "")
-            params = notification.get("params", {})
-            
-            # 构建 URL
-            if params:
-                query_string = urllib.parse.urlencode(params)
-                full_url = f"{url}?{query_string}" if "?" not in url else f"{url}&{query_string}"
-            else:
-                full_url = url
-            
-            print(f"  请求 URL: {full_url}")
+            method = notification.get("method", "GET").upper()  # 默认 GET
+            params = notification.get("params", {})  # GET 请求的 query 参数或 POST 请求的 body
+            body = notification.get("body", None)  # POST 请求的 body（优先级高于 params）
+            headers = notification.get("headers", {})  # 自定义请求头
             
             try:
-                request = urllib.request.Request(full_url)
+                # 准备请求
+                if method == "GET":
+                    # GET 请求：参数放在 URL query string
+                    if params:
+                        query_string = urllib.parse.urlencode(params)
+                        full_url = f"{url}?{query_string}" if "?" not in url else f"{url}&{query_string}"
+                    else:
+                        full_url = url
+                    print(f"  请求方法: GET")
+                    print(f"  请求 URL: {full_url}")
+                    
+                    request = urllib.request.Request(full_url, method="GET")
+                
+                elif method == "POST":
+                    # POST 请求：参数放在 body
+                    print(f"  请求方法: POST")
+                    print(f"  请求 URL: {url}")
+                    
+                    # 确定 body 内容
+                    if body is not None:
+                        # 如果指定了 body，直接使用
+                        if isinstance(body, dict):
+                            body_data = json.dumps(body).encode('utf-8')
+                            content_type = "application/json"
+                        elif isinstance(body, str):
+                            body_data = body.encode('utf-8')
+                            content_type = "application/json"
+                        else:
+                            body_data = str(body).encode('utf-8')
+                            content_type = "application/json"
+                    elif params:
+                        # 如果没有 body 但有 params，将 params 作为 JSON body
+                        body_data = json.dumps(params).encode('utf-8')
+                        content_type = "application/json"
+                    else:
+                        body_data = None
+                        content_type = None
+                    
+                    # 设置请求头
+                    request_headers = {}
+                    if content_type:
+                        request_headers["Content-Type"] = content_type
+                    
+                    # 添加自定义请求头
+                    if headers:
+                        request_headers.update(headers)
+                    
+                    print(f"  请求 Body: {body_data.decode('utf-8') if body_data else '(empty)'}")
+                    if request_headers:
+                        print(f"  请求头: {request_headers}")
+                    
+                    request = urllib.request.Request(url, data=body_data, headers=request_headers, method="POST")
+                
+                else:
+                    # 其他 HTTP 方法（PUT, DELETE 等）
+                    print(f"  请求方法: {method}")
+                    print(f"  请求 URL: {url}")
+                    
+                    body_data = None
+                    if body is not None:
+                        if isinstance(body, dict):
+                            body_data = json.dumps(body).encode('utf-8')
+                        elif isinstance(body, str):
+                            body_data = body.encode('utf-8')
+                    
+                    request_headers = {}
+                    if body_data:
+                        request_headers["Content-Type"] = "application/json"
+                    if headers:
+                        request_headers.update(headers)
+                    
+                    request = urllib.request.Request(url, data=body_data, headers=request_headers, method=method)
+                
+                # 发送请求
                 with urllib.request.urlopen(request, timeout=10) as response:
                     result = response.read().decode('utf-8')
                     print(f"  响应状态: {response.status}")
                     print(f"  响应内容: {result[:200]}...")
+                    
             except Exception as e:
                 print(f"  执行失败: {str(e)}")
+                import traceback
+                traceback.print_exc()
     
     if not executed and not manual_mode:
         print("当前时间没有需要执行的任务")

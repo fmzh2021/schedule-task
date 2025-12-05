@@ -54,6 +54,49 @@
           "message": "每日提醒"
         }
       }
+    },
+    {
+      "id": "task-004",
+      "name": "示例任务-POST请求",
+      "enabled": false,
+      "schedule": {
+        "day": 1,
+        "hour": 10,
+        "minute": 0
+      },
+      "notification": {
+        "method": "POST",
+        "url": "http://api.example.com/webhook",
+        "body": {
+          "event": "monthly_report",
+          "data": {
+            "month": "2024-01",
+            "status": "completed"
+          }
+        },
+        "headers": {
+          "Authorization": "Bearer your-token-here",
+          "X-Custom-Header": "custom-value"
+        }
+      }
+    },
+    {
+      "id": "task-005",
+      "name": "示例任务-POST请求使用params",
+      "enabled": false,
+      "schedule": {
+        "day": 1,
+        "hour": 10,
+        "minute": 0
+      },
+      "notification": {
+        "method": "POST",
+        "url": "http://api.example.com/webhook",
+        "params": {
+          "message": "使用params作为POST body",
+          "type": "notification"
+        }
+      }
     }
   ]
 }
