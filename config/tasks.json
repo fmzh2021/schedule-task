@@ -45,8 +45,8 @@
       "enabled": true,
       "schedule": {
         "day": 5,
-        "hour": 16,
-        "minutes": [45, 48, 40]
+        "hour": 17,
+        "minutes": [45, 48, 43]
       },
       "notification": {
         "url": "http://notice.xmwefun.cn/",

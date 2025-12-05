@@ -41,8 +41,9 @@ manual_mode = os.environ.get("MANUAL_MODE", "false").lower() == "true"
 task_id_filter = os.environ.get("TASK_ID_FILTER", "").strip()
 
 # 获取当前时间
-from datetime import timedelta
-utc_now = datetime.utcnow()
+from datetime import timedelta, timezone
+# 使用新的 API 避免 deprecation warning (Python 3.2+)
+utc_now = datetime.now(timezone.utc).replace(tzinfo=None)
 # 转换为东八区时间（使用 timedelta 正确处理跨天和跨月）
 beijing_time = utc_now + timedelta(hours=8)
 beijing_day = beijing_time.day
@@ -51,6 +52,7 @@ beijing_minute = beijing_time.minute
 
 print(f"当前UTC时间: {utc_now.strftime('%Y-%m-%d %H:%M:%S')}")
 print(f"当前时间（东八区）: {beijing_day}日 {beijing_hour}:{beijing_minute:02d}")
+print(f"注意: GitHub Actions cron 可能有延迟，已启用时间容差（前后1分钟）")
 
 try:
     with open(config_file, 'r', encoding='utf-8') as f:
@@ -83,8 +85,7 @@ try:
             task_day = schedule.get("day")
             if task_day != beijing_day:
                 # 调试信息：显示为什么跳过
-                if manual_mode:
-                    print(f"  跳过任务 {task_name}: 日期不匹配 (任务: {task_day}日, 当前: {beijing_day}日)")
+                print(f"  跳过任务 {task_name}: 日期不匹配 (任务: {task_day}日, 当前: {beijing_day}日)")
                 continue
             
             # 统一处理时间匹配逻辑，支持多种配置格式
@@ -104,17 +105,45 @@ try:
                 task_minutes = [task_minute] if task_minute is not None else []
             
             # 检查当前时间是否匹配
+            # 注意：GitHub Actions cron 可能有延迟，添加时间容差（前后1分钟）
             if task_hours and task_minutes:
-                if beijing_hour in task_hours and beijing_minute in task_minutes:
+                # 精确匹配
+                exact_match = beijing_hour in task_hours and beijing_minute in task_minutes
+                
+                # 容差匹配：如果当前分钟不在配置中，检查前后1分钟是否在配置中
+                # 这样可以处理 GitHub Actions cron 的延迟问题
+                tolerance_match = False
+                if not exact_match:
+                    for offset in [-1, 1]:
+                        check_minute = beijing_minute + offset
+                        if check_minute < 0:
+                            check_minute = 59
+                            check_hour = beijing_hour - 1
+                            if check_hour < 0:
+                                check_hour = 23
+                        elif check_minute > 59:
+                            check_minute = 0
+                            check_hour = beijing_hour + 1
+                            if check_hour > 23:
+                                check_hour = 0
+                        else:
+                            check_hour = beijing_hour
+                        
+                        if check_hour in task_hours and check_minute in task_minutes:
+                            tolerance_match = True
+                            print(f"  时间容差匹配: 当前 {beijing_hour}:{beijing_minute:02d}, 匹配配置时间 {check_hour}:{check_minute:02d}")
+                            break
+                
+                if exact_match or tolerance_match:
                     should_execute = True
-                    print(f"\n[定时触发] 执行任务: {task_name} ({task_id})")
+                    match_type = "精确匹配" if exact_match else "容差匹配"
+                    print(f"\n[定时触发] 执行任务: {task_name} ({task_id}) - {match_type}")
                     print(f"  匹配时间: {beijing_hour}:{beijing_minute:02d} (东八区)")
                 else:
                     # 调试信息：显示为什么不匹配
-                    if manual_mode:
-                        print(f"  跳过任务 {task_name}: 时间不匹配")
-                        print(f"    任务配置: {task_hours}点 {task_minutes}分")
-                        print(f"    当前时间: {beijing_hour}点 {beijing_minute}分")
+                    print(f"  跳过任务 {task_name}: 时间不匹配")
+                    print(f"    任务配置: {task_hours}点 {task_minutes}分")
+                    print(f"    当前时间: {beijing_hour}点 {beijing_minute}分")
             elif not task_hours and not task_minutes:
                 # 如果都没有配置，跳过
                 print(f"  警告: 任务 {task_name} ({task_id}) 的时间配置不完整")
