@@ -33,7 +33,7 @@
         "url": "http://notice.xmwefun.cn",
         "params": {
           "type": "xchat",
-          "bot": "weiliao-personal",
+          "chatid": "0000000463",
           "title": "技术负责人会议",
           "msg": "### 技术负责人会议\n\n1. 每月复盘\n2. 本月待处理\n3. 公司本月技术方向\n\n\n"
         }
@@ -46,7 +46,7 @@
       "schedule": {
         "day": 5,
         "hour": 16,
-        "minute": "*"
+        "minute": [15, 18, 20]
       },
       "notification": {
         "url": "http://notice.xmwefun.cn/",
