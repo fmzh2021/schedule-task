@@ -8,15 +8,15 @@
       "schedule": {
         "day": 5,
         "hour": 10,
-        "minute": 0
+        "minute": [0, 10, 30]
       },
       "notification": {
         "url": "http://notice.xmwefun.cn/",
         "params": {
-          "msg": "github-actions",
           "type": "xchat",
-          "title": "github-actions",
-          "chatid": "0000001534"
+          "bot": "weiliao-personal",
+          "title": "每月复盘",
+          "msg": "### foxhello头脑风暴\n\n1. 每月复盘\n2. 头脑风暴\n3. 截图汇总、清空\n4. [日志报告](https://blog.foxhello.cn)\n\n\n"
         }
       }
     },
@@ -34,11 +34,30 @@
         "params": {
           "type": "xchat",
           "bot": "weiliao-personal",
-          "title": "每月复盘",
-          "msg": "### foxhello头脑风暴\n\n1. 每月复盘\n2. 头脑风暴\n3. 截图汇总、清空\n4. [日志报告](https://blog.foxhello.cn)\n\n\n"
+          "title": "技术负责人会议",
+          "msg": "### 技术负责人会议\n\n1. 每月复盘\n2. 本月待处理\n3. 公司本月技术方向\n\n\n"
         }
       }
-    }
+    },
+    {
+      "id": "task-003",
+      "name": "定时调度测试",
+      "enabled": true,
+      "schedule": {
+        "day": 5,
+        "hour": 15,
+        "minute": "*"
+      },
+      "notification": {
+        "url": "http://notice.xmwefun.cn/",
+        "params": {
+          "type": "xchat",
+          "bot": "weiliao-personal",
+          "title": "定时调度测试",
+          "msg": "### 定时调度测试\n\n每月5日15点每分钟\n\n\n"
+        }
+      }
+    },
   ]
 }
 
