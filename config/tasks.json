@@ -1,0 +1,44 @@
+{
+  "timezone": "Asia/Shanghai",
+  "tasks": [
+    {
+      "id": "task-001",
+      "name": "每月5号通知",
+      "enabled": true,
+      "schedule": {
+        "day": 5,
+        "hour": 10,
+        "minute": 0
+      },
+      "notification": {
+        "url": "http://notice.xmwefun.cn/",
+        "params": {
+          "msg": "github-actions",
+          "type": "xchat",
+          "title": "github-actions",
+          "chatid": "0000001534"
+        }
+      }
+    },
+    {
+      "id": "task-002",
+      "name": "每月15号复盘通知",
+      "enabled": true,
+      "schedule": {
+        "day": 15,
+        "hours": [10],
+        "minutes": [0, 10, 30]
+      },
+      "notification": {
+        "url": "http://notice.xmwefun.cn",
+        "params": {
+          "type": "xchat",
+          "bot": "weiliao-personal",
+          "title": "每月复盘",
+          "msg": "### foxhello头脑风暴\n\n1. 每月复盘\n2. 头脑风暴\n3. 截图汇总、清空\n4. [日志报告](https://blog.foxhello.cn)\n\n\n"
+        }
+      }
+    }
+  ]
+}
+

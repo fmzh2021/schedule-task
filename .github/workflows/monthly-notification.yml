@@ -1,0 +1,48 @@
+name: 每月定时通知任务
+
+on:
+  schedule:
+    # 每月5号 10:00 东八区时间执行 (UTC 02:00)
+    - cron: '0 2 5 * *'
+    # 每月15号 10:00、10:10、10:30 东八区时间执行 (UTC 02:00、02:10、02:30)
+    - cron: '0 2 15 * *'
+    - cron: '10 2 15 * *'
+    - cron: '30 2 15 * *'
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  send-notification:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 判断执行时间并调用对应接口
+        run: |
+          # 获取当前UTC时间
+          CURRENT_HOUR=$(date -u +%H)
+          CURRENT_MINUTE=$(date -u +%M)
+          CURRENT_DAY=$(date -u +%d)
+          
+          # 判断是否为手动触发
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "手动触发：执行所有任务"
+            echo "执行任务1: 每月5号通知"
+            curl -X GET "http://notice.xmwefun.cn/?msg=github-actions&type=xchat&title=github-actions&chatid=0000001534" || true
+            echo "执行任务2: 每月15号复盘通知"
+            curl -X GET "http://notice.xmwefun.cn?type=xchat&bot=weiliao-personal&title=%E6%AF%8F%E6%9C%88%E5%A4%8D%E7%9B%98&msg=%23%23%23%20foxhello%E5%A4%B4%E8%84%91%E9%A3%8E%E6%9A%B4%0A%0A1%2E%20%E6%AF%8F%E6%9C%88%E5%A4%8D%E7%9B%98%0A2%2E%20%E5%A4%B4%E8%84%91%E9%A3%8E%E6%9A%B4%0A3%2E%20%E6%88%AA%E5%9B%BE%E6%B1%87%E6%80%BB%E3%80%81%E6%B8%85%E7%A9%BA%0A4%2E%20%5B%E6%97%A5%E5%BF%97%E6%8A%A5%E5%91%8A%5D%28https%3A%2F%2Fblog%2Efoxhello%2Ecn%29%0A%0A%0A" || true
+          else
+            # 定时触发：根据时间判断执行哪个任务
+            # 每月5号 10:00 (UTC 02:00) 执行
+            if [ "$CURRENT_DAY" = "05" ] && [ "$CURRENT_HOUR" = "02" ] && [ "$CURRENT_MINUTE" = "00" ]; then
+              echo "执行任务1: 每月5号通知"
+              curl -X GET "http://notice.xmwefun.cn/?msg=github-actions&type=xchat&title=github-actions&chatid=0000001534" || true
+            fi
+            
+            # 每月15号 10:00、10:10、10:30 (UTC 02:00、02:10、02:30) 执行
+            if [ "$CURRENT_DAY" = "15" ] && [ "$CURRENT_HOUR" = "02" ]; then
+              if [ "$CURRENT_MINUTE" = "00" ] || [ "$CURRENT_MINUTE" = "10" ] || [ "$CURRENT_MINUTE" = "30" ]; then
+                echo "执行任务2: 每月15号复盘通知"
+                curl -X GET "http://notice.xmwefun.cn?type=xchat&bot=weiliao-personal&title=%E6%AF%8F%E6%9C%88%E5%A4%8D%E7%9B%98&msg=%23%23%23%20foxhello%E5%A4%B4%E8%84%91%E9%A3%8E%E6%9A%B4%0A%0A1%2E%20%E6%AF%8F%E6%9C%88%E5%A4%8D%E7%9B%98%0A2%2E%20%E5%A4%B4%E8%84%91%E9%A3%8E%E6%9A%B4%0A3%2E%20%E6%88%AA%E5%9B%BE%E6%B1%87%E6%80%BB%E3%80%81%E6%B8%85%E7%A9%BA%0A4%2E%20%5B%E6%97%A5%E5%BF%97%E6%8A%A5%E5%91%8A%5D%28https%3A%2F%2Fblog%2Efoxhello%2Ecn%29%0A%0A%0A" || true
+              fi
+            fi
+          fi
+        continue-on-error: true # 即使请求失败也不中断 workflow
+

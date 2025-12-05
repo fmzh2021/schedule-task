@@ -1,0 +1,45 @@
+name: 告警平台定时任务
+
+on:
+  schedule:
+    # 每分钟执行一次，由脚本内部判断是否需要执行任务
+    # 这样可以支持更灵活的时间配置（支持分钟级精度）
+    - cron: '* * * * *'
+  workflow_dispatch: # 允许手动触发
+    inputs:
+      task_id:
+        description: '任务ID（留空执行所有任务）'
+        required: false
+        type: string
+
+jobs:
+  execute-tasks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v3
+      
+      - name: 设置执行模式
+        id: set-mode
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "mode=manual" >> $GITHUB_OUTPUT
+            echo "task_id=${{ github.event.inputs.task_id }}" >> $GITHUB_OUTPUT
+          else
+            echo "mode=scheduled" >> $GITHUB_OUTPUT
+            echo "task_id=" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: 执行告警任务
+        env:
+          MANUAL_MODE: ${{ steps.set-mode.outputs.mode == 'manual' }}
+          TASK_ID: ${{ steps.set-mode.outputs.task_id }}
+        run: |
+          chmod +x scripts/execute-tasks.sh
+          if [ "${{ steps.set-mode.outputs.mode }}" = "manual" ]; then
+            ./scripts/execute-tasks.sh manual "${{ steps.set-mode.outputs.task_id }}"
+          else
+            ./scripts/execute-tasks.sh
+          fi
+        continue-on-error: true
+
