@@ -1,0 +1,31 @@
+name: task-003 定时任务（精确调度）
+
+on:
+  schedule:
+    # 为每个时间点创建独立的 cron 触发，确保不会错过
+    # 北京时间 17:43 (UTC 09:43)
+    - cron: '3 10 5 * *'
+    # 北京时间 17:45 (UTC 09:45)
+    - cron: '5 10 5 * *'
+    # 北京时间 17:48 (UTC 09:48)
+    - cron: '8 10 5 * *'
+  workflow_dispatch:
+    inputs:
+      task_id:
+        description: '任务ID（默认 task-003）'
+        required: false
+        default: 'task-003'
+        type: string
+
+jobs:
+  execute-task-003:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v3
+      
+      - name: 执行 task-003
+        run: |
+          chmod +x scripts/execute-tasks.sh
+          ./scripts/execute-tasks.sh manual "task-003"
+
