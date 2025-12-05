@@ -41,19 +41,16 @@ manual_mode = os.environ.get("MANUAL_MODE", "false").lower() == "true"
 task_id_filter = os.environ.get("TASK_ID_FILTER", "").strip()
 
 # 获取当前时间
+from datetime import timedelta
 utc_now = datetime.utcnow()
-current_day = utc_now.day
-current_hour = utc_now.hour
-current_minute = utc_now.minute
+# 转换为东八区时间（使用 timedelta 正确处理跨天和跨月）
+beijing_time = utc_now + timedelta(hours=8)
+beijing_day = beijing_time.day
+beijing_hour = beijing_time.hour
+beijing_minute = beijing_time.minute
 
-# 转换为东八区时间
-beijing_hour = current_hour + 8
-beijing_day = current_day
-if beijing_hour >= 24:
-    beijing_hour -= 24
-    beijing_day += 1
-
-print(f"当前时间（东八区）: {beijing_day}日 {beijing_hour}:{current_minute:02d}")
+print(f"当前UTC时间: {utc_now.strftime('%Y-%m-%d %H:%M:%S')}")
+print(f"当前时间（东八区）: {beijing_day}日 {beijing_hour}:{beijing_minute:02d}")
 
 try:
     with open(config_file, 'r', encoding='utf-8') as f:
@@ -85,23 +82,42 @@ try:
             # 检查是否匹配调度时间
             task_day = schedule.get("day")
             if task_day != beijing_day:
+                # 调试信息：显示为什么跳过
+                if manual_mode:
+                    print(f"  跳过任务 {task_name}: 日期不匹配 (任务: {task_day}日, 当前: {beijing_day}日)")
                 continue
             
-            # 处理单个时间点
-            if "minute" in schedule and "hour" in schedule:
-                task_hour = schedule.get("hour")
-                task_minute = schedule.get("minute")
-                if task_hour == beijing_hour and task_minute == current_minute:
-                    should_execute = True
-                    print(f"\n[定时触发] 执行任务: {task_name} ({task_id})")
+            # 统一处理时间匹配逻辑，支持多种配置格式
+            task_hour = schedule.get("hour") or schedule.get("hours")
+            task_minute = schedule.get("minute") or schedule.get("minutes")
             
-            # 处理多个时间点
-            elif "minutes" in schedule and "hours" in schedule:
-                task_hours = schedule.get("hours", [])
-                task_minutes = schedule.get("minutes", [])
-                if beijing_hour in task_hours and current_minute in task_minutes:
+            # 处理 hour：可能是单个值或数组
+            if isinstance(task_hour, list):
+                task_hours = task_hour
+            else:
+                task_hours = [task_hour] if task_hour is not None else []
+            
+            # 处理 minute：可能是单个值或数组
+            if isinstance(task_minute, list):
+                task_minutes = task_minute
+            else:
+                task_minutes = [task_minute] if task_minute is not None else []
+            
+            # 检查当前时间是否匹配
+            if task_hours and task_minutes:
+                if beijing_hour in task_hours and beijing_minute in task_minutes:
                     should_execute = True
                     print(f"\n[定时触发] 执行任务: {task_name} ({task_id})")
+                    print(f"  匹配时间: {beijing_hour}:{beijing_minute:02d} (东八区)")
+                else:
+                    # 调试信息：显示为什么不匹配
+                    if manual_mode:
+                        print(f"  跳过任务 {task_name}: 时间不匹配")
+                        print(f"    任务配置: {task_hours}点 {task_minutes}分")
+                        print(f"    当前时间: {beijing_hour}点 {beijing_minute}分")
+            elif not task_hours and not task_minutes:
+                # 如果都没有配置，跳过
+                print(f"  警告: 任务 {task_name} ({task_id}) 的时间配置不完整")
         
         if should_execute:
             executed = True

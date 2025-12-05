@@ -8,7 +8,7 @@
       "schedule": {
         "day": 5,
         "hour": 10,
-        "minute": [0, 10, 30]
+        "minutes": [0, 10, 30]
       },
       "notification": {
         "url": "http://notice.xmwefun.cn/",
@@ -46,7 +46,7 @@
       "schedule": {
         "day": 5,
         "hour": 16,
-        "minute": [15, 18, 20]
+        "minutes": [45, 48, 40]
       },
       "notification": {
         "url": "http://notice.xmwefun.cn/",
